@@ -1,0 +1,12 @@
+{% extends 'main.html' %}
+
+
+{% block title %}
+Register user
+{% endblock title %}
+
+
+{% block content %}
+{% include 'components/form.html' %}
+<p>Already have an account? <a href="{% url 'accounts:login' %}">login here</a></p>
+{% endblock content %}

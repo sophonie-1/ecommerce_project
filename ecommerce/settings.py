@@ -41,7 +41,12 @@ INSTALLED_APPS = [
     'accounts.apps.AccountsConfig',
     'crispy_forms',
 ]
+# Crispy Forms configuration
 CRISPY_TEMPLATE_PACK = 'bootstrap4'
+
+#Add session settings to ensure session data persists for guest users:
+SESSION_COOKIE_AGE = 1209600  # 2 weeks in seconds
+SESSION_EXPIRE_AT_BROWSER_CLOSE = False  # Persist session beyond browser close
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
