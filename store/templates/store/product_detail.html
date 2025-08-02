@@ -1,0 +1,27 @@
+{% extends 'main.html' %}
+
+{% block title %}
+Product detail
+{% endblock title %}
+
+
+{% block content %}
+<h2>{{ product.name }}</h2>
+<div class="row">
+    <div class="col-md-6">
+        {% if product.image %}
+        <img src="{{ product.image.url }}" class="img-fluid" alt="{{ product.name }}">
+        {% else %}
+        <img src="https://via.placeholder.com/300" class="img-fluid" alt="No image">
+        {% endif %}
+    </div>
+    <div class="col-md-6">
+        <p><strong>Price:</strong> ${{ product.price }}</p>
+        <p><strong>Description:</strong> {{ product.description|default:"No description available." }}</p>
+        <p><strong>Category:</strong> {{ product.category.name }}</p>
+        <p><strong>Stock:</strong> {{ product.stock }} in stock</p>
+        <!-- Add to cart button (implemented in Step 7) -->
+        <a href="{% url 'store:product_list' %}" class="btn btn-secondary">Back to Products</a>
+    </div>
+</div>
+{% endblock content %}

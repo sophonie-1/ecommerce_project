@@ -1,10 +1,28 @@
-<form action="" method="post">
-    {% csrf_token %}
-    {{form.as_p}}
-
-    {% if request.path == "/accounts/login/" %}
-    <button>login</button>
-    {% elif request.path == "/accounts/register/" %}
-    <button>register</button>
+<div class="container mt-5">
+    <h2>Register</h2>
+    {% if messages %}
+    <div>
+        {% for message in messages %}
+        <div class="alert alert-{{ message.tags }}">{{ message }}</div>
+        {% endfor %}
+    </div>
     {% endif %}
-</form>
+    <form method="post">
+        {% csrf_token %}
+        {{ form.as_p }}
+
+        {% if request.path == '/accounts/register/' %}
+        <button type="submit" class="btn btn-primary">Register</button>
+        {% else %}
+        <button type="submit" class="btn btn-primary">login</button>
+        {% endif %}
+
+
+    </form>
+    {% if request.path == '/accounts/register/' %}
+    <p class="mt-3">Already have an account? <a href="{% url 'accounts:login' %}">Login here</a>.</p>
+    {% else %}
+    <p class="mt-3">Don't have an account? <a href="{% url 'accounts:register' %}">Register here</a>.</p>
+    {% endif %}
+
+</div>

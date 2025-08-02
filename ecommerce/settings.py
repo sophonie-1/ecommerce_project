@@ -40,9 +40,12 @@ INSTALLED_APPS = [
     'store.apps.StoreConfig',
     'accounts.apps.AccountsConfig',
     'crispy_forms',
+    'crispy_bootstrap5',
 ]
 # Crispy Forms configuration
-CRISPY_TEMPLATE_PACK = 'bootstrap4'
+
+CRISPY_ALLOWED_TEMPLATE_PACKS = "bootstrap5"  # or the one you want
+CRISPY_TEMPLATE_PACK = "bootstrap5"
 
 #Add session settings to ensure session data persists for guest users:
 SESSION_COOKIE_AGE = 1209600  # 2 weeks in seconds
@@ -125,6 +128,13 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/4.2/howto/static-files/
 
 STATIC_URL = 'static/'
+MEDIA_URL ='media/'
+
+STATICFILES_DIRS= [
+    BASE_DIR / 'static'
+]
+MEDIA_ROOT =BASE_DIR / 'media'
+STATIC_ROPT =BASE_DIR /'staticfiles'
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/4.2/ref/settings/#default-auto-field
