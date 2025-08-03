@@ -2,4 +2,18 @@ buki
 db.sqlite3
 # Ignore Python cache files
 __pycache__/
-media
+media/*
+media_root/
+# Ignore Django migrations
+migrations/
+# Ignore static files
+staticfiles/
+# Ignore environment files
+.env
+# Ignore IDE/editor specific files
+.idea/
+.vscode/
+# Ignore log files
+*.log
+# Ignore coverage reports
+.coverage
