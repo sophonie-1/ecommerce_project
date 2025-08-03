@@ -50,6 +50,12 @@ CRISPY_TEMPLATE_PACK = "bootstrap5"
 #Add session settings to ensure session data persists for guest users:
 SESSION_COOKIE_AGE = 1209600  # 2 weeks in seconds
 SESSION_EXPIRE_AT_BROWSER_CLOSE = False  # Persist session beyond browser close
+# Ensure session cookies are secure and HTTP-only
+SESSION_COOKIE_NAME = 'ecommerce_sessionid'
+SESSION_COOKIE_SECURE = True
+SESSION_COOKIE_HTTPONLY = True
+SESSION_COOKIE_SAMESITE = 'Lax'
+  # Use secure cookies in production (set to False for development)
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',

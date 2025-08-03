@@ -20,8 +20,11 @@ Product detail
         <p><strong>Description:</strong> {{ product.description|default:"No description available." }}</p>
         <p><strong>Category:</strong> {{ product.category.name }}</p>
         <p><strong>Stock:</strong> {{ product.stock }} in stock</p>
-        <!-- Add to cart button (implemented in Step 7) -->
-        <a href="{% url 'store:product_list' %}" class="btn btn-secondary">Back to Products</a>
+        <form method="post" action="{% url 'store:add_to_cart' product.id %}">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-primary">Add to Cart</button>
+        </form>
+        <a href="{% url 'store:product_list' %}" class="btn btn-secondary mt-2">Back to Products</a>
     </div>
 </div>
 {% endblock content %}
