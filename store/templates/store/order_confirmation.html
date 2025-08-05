@@ -1,0 +1,37 @@
+{% extends 'main.html' %}
+
+
+{% load store_tags %}
+{% block title %}Order Confirmation{% endblock %}
+
+
+{% block content %}
+<h2>Order Confirmation</h2>
+<p>Thank you for your order!</p>
+<h4>Order #{{ order.id }}</h4>
+<p><strong>Shipping Address:</strong> {{ order.shipping_address }}</p>
+<p><strong>Total:</strong> ${{ order.total_price|floatformat:2 }}</p>
+<p><strong>Status:</strong> {{ order.get_status_display }}</p>
+<h4>Items</h4>
+<table class="table">
+    <thead>
+        <tr>
+            <th>Product</th>
+            <th>Price</th>
+            <th>Quantity</th>
+            <th>Total</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for item in order.items.all %}
+        <tr>
+            <td>{{ item.product.name }}</td>
+            <td>${{ item.price }}</td>
+            <td>{{ item.quantity }}</td>
+            <td>${{ item.price|floatformat:2|multiply:item.quantity }}</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+<a href="{% url 'store:product_list' %}" class="btn btn-primary">Continue Shopping</a>
+{% endblock %}

@@ -1,0 +1,50 @@
+{% extends 'main.html' %}
+
+
+{% load store_tags %}
+{% load crispy_forms_tags %}
+
+
+{% block title %}Checkout{% endblock %}
+
+
+{% block content %}
+<h2>Checkout</h2>
+{% if cart_items %}
+<h4>Order Summary</h4>
+<table class="table">
+    <thead>
+        <tr>
+            <th>Product</th>
+            <th>Price</th>
+            <th>Quantity</th>
+            <th>Total</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for item in cart_items %}
+        <tr>
+            <td>{{ item.product.name }}</td>
+            <td>${{ item.product.price }}</td>
+            <td>{{ item.quantity }}</td>
+            <td>${{ item.product.price|floatformat:2|multiply:item.quantity }}</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+<h4>Total: ${{ cart_total|floatformat:2 }}</h4>
+<h4>Shipping Details</h4>
+<form method="post">
+    {% csrf_token %}
+    {{ form|crispy }}
+    <button type="submit" class="btn btn-primary">Place Order</button>
+</form>
+<a href="{% url 'store:cart' %}" class="btn btn-secondary mt-2">Back to Cart</a>
+
+{% else %}
+
+<p>Your cart is empty.</p>
+<a href="{% url 'store:product_list' %}" class="btn btn-secondary">Browse Products</a>
+
+{% endif %}
+{% endblock %}

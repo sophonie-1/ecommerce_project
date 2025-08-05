@@ -1,5 +1,6 @@
 {% extends 'main.html' %}
 {% load store_tags %}
+
 {% block title %}
 Cart
 {% endblock title %}
@@ -43,8 +44,7 @@ Cart
 </table>
 <h4>Total: ${{ cart_total|floatformat:2 }}</h4>
 <a href="{% url 'store:product_list' %}" class="btn btn-secondary">Continue Shopping</a>
-<!-- Checkout link (implemented in Step 8) -->
-<a href="#" class="btn btn-primary">Proceed to Checkout</a>
+<a href="{% url 'store:checkout' %}" class="btn btn-primary">Proceed to Checkout</a>
 {% else %}
 <p>Your cart is empty.</p>
 <a href="{% url 'store:product_list' %}" class="btn btn-secondary">Browse Products</a>

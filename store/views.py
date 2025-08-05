@@ -1,9 +1,10 @@
-from django.views.generic import ListView, View,DetailView
-from django.shortcuts import get_object_or_404, redirect
+from django.views.generic import ListView, View,DetailView,FormView
+from django.shortcuts import get_object_or_404, redirect,render
 from django.contrib import messages
 from django.urls import reverse_lazy
-from .models import Product, Cart, CartItem
+from .models import Product, Cart, CartItem,Order,OrderItem
 from django.contrib.auth.models import User
+from .forms import CheckOutForm
 
 class ProductListView(ListView):
     model = Product
@@ -11,10 +12,15 @@ class ProductListView(ListView):
     context_object_name = 'products'
     ordering = ['-created_at']
 
+    def get_queryset(self):
+        # Override to ensure we only get products that are in stock
+        return Product.objects.filter(stock__gt=0)
+
 class ProductDetailView(DetailView):
     model = Product
     template_name = 'store/product_detail.html'
     context_object_name = 'product'
+
 
 class CartView(ListView):
     template_name = 'store/cart.html'
@@ -50,10 +56,12 @@ class CartView(ListView):
 class AddToCartView(View):
     def post(self, request, product_id):
         product = get_object_or_404(Product, id=product_id)
+        # Check if the product is in stock
         if product.stock <= 0:
             messages.error(request, f"{product.name} is out of stock.")
             return redirect('store:product_detail', pk=product_id)
         user = request.user
+        # Get or create a cart for the user or session
         if user.is_authenticated:
             cart, created = Cart.objects.get_or_create(user=user)
         else:
@@ -63,11 +71,16 @@ class AddToCartView(View):
                 session_key = request.session.session_key
             cart, created = Cart.objects.get_or_create(session_key=session_key)
         cart_item, created = CartItem.objects.get_or_create(cart=cart, product=product)
-        if product.stock < cart_item.quantity + 1:
-            messages.error(request, f"Only {product.stock} {product.name} available.")
-            return redirect('store:product_detail', pk=product_id)
+        # If the item already exists in the cart, increase the quantity
+        # because we set 1 as default quantity
         if not created:
+            # Check if adding one more exceeds stock
+            if product.stock <= cart_item.quantity:
+                messages.error(request, f"Only {product.stock} {product.name} available.")
+                return redirect('store:product_detail', pk=product_id)
+            # Otherwise, increase the quantity
             cart_item.quantity += 1
+
         cart_item.save()
         messages.success(request, f"{product.name} added to cart.")
         return redirect('store:cart')
@@ -95,3 +108,76 @@ class RemoveFromCartView(View):
         cart_item.delete()
         messages.success(request, f"{product_name} removed from cart.")
         return redirect('store:cart')
+
+class CheckoutView(FormView):
+    template_name = 'store/checkout.html'
+    form_class = CheckOutForm
+    success_url = reverse_lazy('store:order_confirmation')
+    
+
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        print(kwargs)
+        kwargs['user'] = self.request.user
+        return kwargs
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        user = self.request.user
+        if user.is_authenticated:
+            cart = Cart.objects.get(user=user)
+        else:
+            session_key = self.request.session.session_key
+            if not session_key:
+                self.request.session.create()
+                session_key = self.request.session.session_key
+            cart = Cart.objects.get(session_key=session_key)
+        context['cart_items'] = cart.items.all()
+        context['cart_total'] = sum(item.product.price * item.quantity for item in cart.items.all())
+        return context
+
+    def form_valid(self, form):
+        print('form valid:',form)
+        user = self.request.user
+        if user.is_authenticated:
+            cart = Cart.objects.get(user=user)
+            order = Order.objects.create(
+                user=user,
+                total_price=sum(item.product.price * item.quantity for item in cart.items.all()),
+                shipping_address=form.cleaned_data['shipping_address'],
+            )
+        else:
+            session_key = self.request.session.session_key
+            if not session_key:
+                self.request.session.create()
+                session_key = self.request.session.session_key
+            cart = Cart.objects.get(session_key=session_key)
+            order = Order.objects.create(
+                session_key=session_key,
+                total_price=sum(item.product.price * item.quantity for item in cart.items.all()),
+                shipping_address=form.cleaned_data['shipping_address'],
+            )
+        for item in cart.items.all():
+            OrderItem.objects.create(
+                order=order,
+                product=item.product,
+                quantity=item.quantity,
+                price=item.product.price
+            )
+        cart.items.all().delete()  # Clear cart after order
+        self.request.session['order_id'] = order.id  # Store order ID for confirmation
+        return super().form_valid(form)
+       
+class OrderConfirmationView(View):
+    template_name = 'store/order_confirmation.html'
+
+    def get(self, request):
+        order_id = request.session.get('order_id')
+        if not order_id:
+            messages.error(request, 'No order found.')
+            return redirect('store:product_list')
+        order = get_object_or_404(Order, id=order_id)
+        return self.render_to_response({'order': order})
+
+    def render_to_response(self, context, **response_kwargs):
+        return render(self.request, self.template_name, context, **response_kwargs)
