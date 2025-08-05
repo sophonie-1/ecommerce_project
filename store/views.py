@@ -3,6 +3,9 @@ from django.shortcuts import get_object_or_404, redirect,render
 from django.contrib import messages
 from django.urls import reverse_lazy
 from .models import Product, Cart, CartItem,Order,OrderItem
+from django.contrib.auth import login
+from accounts.models import Profile
+from django.contrib.auth.models import User
 from django.contrib.auth.models import User
 from .forms import CheckOutForm
 
@@ -113,14 +116,12 @@ class CheckoutView(FormView):
     template_name = 'store/checkout.html'
     form_class = CheckOutForm
     success_url = reverse_lazy('store:order_confirmation')
-    
 
     def get_form_kwargs(self):
         kwargs = super().get_form_kwargs()
-        print(kwargs)
         kwargs['user'] = self.request.user
         return kwargs
-    
+
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         user = self.request.user
@@ -137,26 +138,45 @@ class CheckoutView(FormView):
         return context
 
     def form_valid(self, form):
-        print('form valid:',form)
         user = self.request.user
         if user.is_authenticated:
             cart = Cart.objects.get(user=user)
-            order = Order.objects.create(
-                user=user,
-                total_price=sum(item.product.price * item.quantity for item in cart.items.all()),
-                shipping_address=form.cleaned_data['shipping_address'],
-            )
         else:
             session_key = self.request.session.session_key
             if not session_key:
                 self.request.session.create()
                 session_key = self.request.session.session_key
             cart = Cart.objects.get(session_key=session_key)
-            order = Order.objects.create(
-                session_key=session_key,
-                total_price=sum(item.product.price * item.quantity for item in cart.items.all()),
-                shipping_address=form.cleaned_data['shipping_address'],
+
+        # Check stock before creating order
+        for item in cart.items.all():
+            if item.quantity > item.product.stock:
+                messages.error(self.request, f"Only {item.product.stock} {item.product.name} available.")
+                return redirect('store:cart')
+
+        # Create order
+        if form.cleaned_data['create_account'] and not user.is_authenticated:
+            user = User.objects.create_user(
+                username=form.cleaned_data['username'],
+                email=form.cleaned_data['email'],
+                password=form.cleaned_data['password']
             )
+            Profile.objects.create(user=user, address=form.cleaned_data['shipping_address'])
+            login(self.request, user)
+            messages.success(self.request, 'Account created and logged in!')
+            cart.session_key = None
+            cart.user = user
+            cart.save()
+        
+        # Create order with the user or session key
+        order = Order.objects.create(
+            user=user if user.is_authenticated else None,
+            session_key=session_key if not user.is_authenticated else None,
+            total_price=sum(item.product.price * item.quantity for item in cart.items.all()),
+            shipping_address=form.cleaned_data['shipping_address'],
+        )
+        messages.success(self.request, 'Order placed successfully!')
+        # Create order items and update product stock or reduce stock
         for item in cart.items.all():
             OrderItem.objects.create(
                 order=order,
@@ -164,9 +184,30 @@ class CheckoutView(FormView):
                 quantity=item.quantity,
                 price=item.product.price
             )
-        cart.items.all().delete()  # Clear cart after order
-        self.request.session['order_id'] = order.id  # Store order ID for confirmation
+            item.product.stock -= item.quantity
+            item.product.save()
+        cart.items.all().delete()
+        self.request.session['order_id'] = order.id
         return super().form_valid(form)
+
+    def form_invalid(self, form):
+        messages.error(self.request, 'Please correct the errors below.')
+        return super().form_invalid(form)
+
+    def get(self, request, *args, **kwargs):
+        user = request.user
+        if user.is_authenticated:
+            cart = Cart.objects.filter(user=user).first()
+        else:
+            session_key = request.session.session_key
+            if not session_key:
+                request.session.create()
+                session_key = request.session.session_key
+            cart = Cart.objects.filter(session_key=session_key).first()
+        if not cart or not cart.items.exists():
+            messages.error(request, 'Your cart is empty.')
+            return redirect('store:cart')
+        return super().get(request, *args, **kwargs)
        
 class OrderConfirmationView(View):
     template_name = 'store/order_confirmation.html'
