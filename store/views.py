@@ -29,6 +29,7 @@ class CartView(ListView):
     template_name = 'store/cart.html'
     context_object_name = 'cart_items'
 
+    # This method retrieves the cart items for the authenticated user or session.
     def get_queryset(self):
         user = self.request.user
         if user.is_authenticated:
@@ -41,7 +42,8 @@ class CartView(ListView):
                 session_key = self.request.session.session_key
             cart, created = Cart.objects.get_or_create(session_key=session_key)
         return cart.items.all()
-
+    
+    # This method calculates the total price of the cart items and adds it to the context.
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         user = self.request.user
@@ -78,7 +80,7 @@ class AddToCartView(View):
         # because we set 1 as default quantity
         if not created:
             # Check if adding one more exceeds stock
-            if product.stock <= cart_item.quantity:
+            if product.stock <= cart_item.quantity + 1:
                 messages.error(request, f"Only {product.stock} {product.name} available.")
                 return redirect('store:product_detail', pk=product_id)
             # Otherwise, increase the quantity
@@ -117,11 +119,13 @@ class CheckoutView(FormView):
     form_class = CheckOutForm
     success_url = reverse_lazy('store:order_confirmation')
 
+    # This method initializes the form with the user profile's shipping address if available.
     def get_form_kwargs(self):
         kwargs = super().get_form_kwargs()
         kwargs['user'] = self.request.user
         return kwargs
-
+    
+    # This method retrieves the cart items and total price to display on the checkout page.
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         user = self.request.user
@@ -129,14 +133,15 @@ class CheckoutView(FormView):
             cart = Cart.objects.get(user=user)
         else:
             session_key = self.request.session.session_key
-            if not session_key:
-                self.request.session.create()
-                session_key = self.request.session.session_key
             cart = Cart.objects.get(session_key=session_key)
         context['cart_items'] = cart.items.all()
         context['cart_total'] = sum(item.product.price * item.quantity for item in cart.items.all())
         return context
-
+    
+    # This method handles the form submission for checkout.
+    # It checks if the user is authenticated and retrieves the cart items.
+    # If the user is not authenticated, it creates a session key for the cart.
+    # It validates the stock of each item before creating the order.
     def form_valid(self, form):
         user = self.request.user
         if user.is_authenticated:
@@ -154,7 +159,7 @@ class CheckoutView(FormView):
                 messages.error(self.request, f"Only {item.product.stock} {item.product.name} available.")
                 return redirect('store:cart')
 
-        # Create order
+        # user who created account during Checkout or ordering as quest
         if form.cleaned_data['create_account'] and not user.is_authenticated:
             user = User.objects.create_user(
                 username=form.cleaned_data['username'],
@@ -176,7 +181,8 @@ class CheckoutView(FormView):
             shipping_address=form.cleaned_data['shipping_address'],
         )
         messages.success(self.request, 'Order placed successfully!')
-        # Create order items and update product stock or reduce stock
+
+        # Create order items and update product stock by reducing number of items ordered
         for item in cart.items.all():
             OrderItem.objects.create(
                 order=order,
@@ -193,7 +199,8 @@ class CheckoutView(FormView):
     def form_invalid(self, form):
         messages.error(self.request, 'Please correct the errors below.')
         return super().form_invalid(form)
-
+    
+    # This view checks if the cart is empty before proceeding to checkout.
     def get(self, request, *args, **kwargs):
         user = request.user
         if user.is_authenticated:
@@ -212,6 +219,8 @@ class CheckoutView(FormView):
 class OrderConfirmationView(View):
     template_name = 'store/order_confirmation.html'
 
+    # This view displays the order confirmation page after a successful order.
+    # It retrieves the order using the order_id stored in the session.
     def get(self, request):
         order_id = request.session.get('order_id')
         if not order_id:
@@ -219,6 +228,8 @@ class OrderConfirmationView(View):
             return redirect('store:product_list')
         order = get_object_or_404(Order, id=order_id)
         return self.render_to_response({'order': order})
-
+    
+    # This method renders the order confirmation template with the order context.
+    # It uses the render function to return the response.
     def render_to_response(self, context, **response_kwargs):
         return render(self.request, self.template_name, context, **response_kwargs)

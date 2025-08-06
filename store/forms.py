@@ -25,6 +25,7 @@ class CheckOutForm(forms.Form):
             self.fields['email'].widget = forms.HiddenInput()
             self.fields['password'].widget = forms.HiddenInput()
             self.fields['confirm_password'].widget = forms.HiddenInput()
+        
 
     def clean(self):
         cleaned_data = super().clean()
@@ -43,7 +44,12 @@ class CheckOutForm(forms.Form):
                 raise forms.ValidationError("Username already taken.")
             if User.objects.filter(email=email).exists():
                 raise forms.ValidationError("Email already in use.")
-        return cleaned_data
+            return cleaned_data
+        else:
+            # If not creating an account, ensure username and email are not provided
+            if username or email or password or confirm_password:
+                raise forms.ValidationError("Account fields should not be filled if not creating an account.")
+            return cleaned_data
 
 from django.urls import reverse_lazy
 from django.views.generic.edit import FormView
