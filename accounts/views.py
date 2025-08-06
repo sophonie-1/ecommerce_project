@@ -36,15 +36,17 @@ class LoginCustomView(FormView):
     success_url = reverse_lazy('store:product_list')
 
     def form_valid(self, form):
+        session_key = self.request.session.session_key
         username = form.cleaned_data.get('username')
         password = form.cleaned_data.get('password')
         user = authenticate(self.request, username=username, password=password)
         if user is not None:
             login(self.request, user)
             # Merge guest cart with user cart
-            session_key = self.request.session.session_key
+            print('session_key:', session_key)
             if session_key:
                 guest_cart = Cart.objects.filter(session_key=session_key).first()
+                print('guest_cart:', guest_cart)
                 if guest_cart:
                     user_cart, created = Cart.objects.get_or_create(user=user)
                     for guest_item in guest_cart.items.all():
@@ -76,5 +78,6 @@ class LoginCustomView(FormView):
 class LogoutCustomView(View):
     def get(self,request):
         logout(self.request)
+        self.request.session.flush()
         messages.success(self.request,'Logged out successfully!')
         return redirect('store:product_list')
