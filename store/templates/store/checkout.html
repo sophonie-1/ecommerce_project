@@ -37,13 +37,10 @@
 <form method="post">
     {% csrf_token %}
     {{ form|crispy }}
-    {% if not user.is_authenticated %}
-    <h4>Create an Account (Optional)</h4>
-    <div class="form-check">
-        {{ form.create_account }}
-        <label class="form-check-label" for="{{ form.create_account.id_for_label }}">Create an account</label>
-    </div>
-    {% endif %}
+
+    <label class="form-check-label" for="{{ form.create_account.id_for_label }}">Create an account</label>
+
+
     <button type="submit" class="btn btn-primary">Place Order</button>
 </form>
 <a href="{% url 'store:cart' %}" class="btn btn-secondary mt-2">Back to Cart</a>
