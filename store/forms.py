@@ -1,6 +1,7 @@
 from django import forms
 from django.contrib.auth.models import User
 from accounts.models import Profile
+from .models import Category
 
 class CheckOutForm(forms.Form):
     shipping_address = forms.CharField(widget=forms.Textarea(attrs={'rows': 4}))
@@ -51,30 +52,50 @@ class CheckOutForm(forms.Form):
                 raise forms.ValidationError("Account fields should not be filled if not creating an account.")
             return cleaned_data
 
-from django.urls import reverse_lazy
-from django.views.generic.edit import FormView
-# # This code defines a Django form for checking out, allowing users to enter their shipping address.
-# using set_user method to set the initial value of the shipping address field based on the user's profile.
-class CheckOutFormSet(forms.Form):
-    shipping_address = forms.CharField(
-        widget=forms.Textarea(attrs={'rows': 4, 'placeholder': 'Enter your shipping address'})
+class ProductSearchForm(forms.Form):
+    search_query = forms.CharField(required=False, label="Search")
+    category = forms.ModelChoiceField(
+        queryset=Category.objects.all(),
+        required=False,
+        empty_label="All Categories"
     )
 
-    def set_user(self, user):
-        if user and user.is_authenticated:
-            try:
-                profile = user.profile
-                if profile.address:
-                    self.fields['shipping_address'].initial = profile.address
-            except Profile.DoesNotExist:
-                pass
+    def clean(self):
+        cleaned_data = super().clean()
+        search_query = cleaned_data.get('search_query')
+        category = cleaned_data.get('category')
+        prohibited_characters ='!@#$%^&*()_+={}[]|\\:;"\`~<>,.?/'
+        if search_query:
+            if any(char in search_query for char in prohibited_characters):
+                raise forms.ValidationError("Search query contains prohibited characters.")
+        if category and not isinstance(category, Category):
+            raise forms.ValidationError("Invalid category selected.")
+        return super().clean()
 
-class CheckoutView(FormView):
-    template_name = 'store/checkout.html'
-    form_class = CheckOutFormSet
-    success_url = reverse_lazy('store:order_confirmation')
+# from django.urls import reverse_lazy
+# from django.views.generic.edit import FormView
+# # # This code defines a Django form for checking out, allowing users to enter their shipping address.
+# # using set_user method to set the initial value of the shipping address field based on the user's profile.
+# class CheckOutFormSet(forms.Form):
+#     shipping_address = forms.CharField(
+#         widget=forms.Textarea(attrs={'rows': 4, 'placeholder': 'Enter your shipping address'})
+#     )
 
-    def get_form(self):
-        form = super().get_form()
-        form.set_user(self.request.user)
-        return form
+#     def set_user(self, user):
+#         if user and user.is_authenticated:
+#             try:
+#                 profile = user.profile
+#                 if profile.address:
+#                     self.fields['shipping_address'].initial = profile.address
+#             except Profile.DoesNotExist:
+#                 pass
+
+# class CheckoutView(FormView):
+#     template_name = 'store/checkout.html'
+#     form_class = CheckOutFormSet
+#     success_url = reverse_lazy('store:order_confirmation')
+
+#     def get_form(self):
+#         form = super().get_form()
+#         form.set_user(self.request.user)
+#         return form

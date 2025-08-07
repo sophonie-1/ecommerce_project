@@ -7,7 +7,8 @@ from django.contrib.auth import login
 from accounts.models import Profile
 from django.contrib.auth.models import User
 from django.contrib.auth.models import User
-from .forms import CheckOutForm
+from .forms import CheckOutForm,ProductSearchForm
+from django.db.models import Q
 
 class ProductListView(ListView):
     model = Product
@@ -16,8 +17,37 @@ class ProductListView(ListView):
     ordering = ['-created_at']
 
     def get_queryset(self):
-        # Override to ensure we only get products that are in stock
-        return Product.objects.filter(stock__gt=0)
+        queryset = super().get_queryset()
+        form = ProductSearchForm(self.request.GET or None)
+
+        if form.is_valid():
+            search_query = form.cleaned_data.get('search_query')
+            category = form.cleaned_data.get('category')
+
+            if search_query:
+                queryset = queryset.filter(
+                    Q(name__icontains=search_query) |
+                    Q(description__icontains=search_query) |
+                    Q(category__name__icontains=search_query)
+                )
+            elif category:
+                queryset = queryset.filter(category=category)
+        else:
+            messages.error(self.request, 'Invalid search criteria.')
+
+        return queryset
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['form'] = ProductSearchForm()  # ← always empty
+        return context
+
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['form'] = ProductSearchForm(self.request.GET or None)
+        return context
+        
 
 class ProductDetailView(DetailView):
     model = Product
