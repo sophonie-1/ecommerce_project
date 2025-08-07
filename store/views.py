@@ -24,6 +24,8 @@ class ProductListView(ListView):
         if form.is_valid():
             search_query = form.cleaned_data.get('search_query')
             category = form.cleaned_data.get('category')
+            sort_by = form.cleaned_data.get('sort_by')
+            print('sort_by:', sort_by)
 
             filtered_queryset = queryset
             if search_query:
@@ -39,9 +41,13 @@ class ProductListView(ListView):
             if (search_query or category) and not filtered_queryset.exists():
                 messages.info(self.request, 'No matching products found, showing all products.')
                 return queryset
-            elif not search_query and not category:
-                return queryset
-            return filtered_queryset
+            if not queryset.exists() and (search_query or category):
+                messages.info(self.request, "No products found. Showing all products.")
+                return super().get_queryset().order_by('-created_at')
+            if sort_by:
+                queryset = queryset.order_by(sort_by)
+            else:
+                queryset = queryset.order_by('-created_at')
 
         return queryset
             

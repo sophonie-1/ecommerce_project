@@ -59,6 +59,16 @@ class ProductSearchForm(forms.Form):
         required=False,
         empty_label="All Categories"
     )
+    sort_by = forms.ChoiceField(
+           choices=[
+               ('-created_at', 'Newest First'),
+               ('name', 'Name (A-Z)'),
+               ('price', 'Price (Low to High)'),
+               ('-price', 'Price (High to Low)')
+           ],
+           required=False,
+           label="Sort By"
+       )
 
     def clean(self):
         cleaned_data = super().clean()
