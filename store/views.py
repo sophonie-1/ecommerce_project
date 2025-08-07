@@ -24,18 +24,27 @@ class ProductListView(ListView):
             search_query = form.cleaned_data.get('search_query')
             category = form.cleaned_data.get('category')
 
+            filtered_queryset = queryset
             if search_query:
-                queryset = queryset.filter(
+                filtered_queryset = filtered_queryset.filter(
                     Q(name__icontains=search_query) |
                     Q(description__icontains=search_query) |
                     Q(category__name__icontains=search_query)
                 )
-            elif category:
-                queryset = queryset.filter(category=category)
-        else:
-            messages.error(self.request, 'Invalid search criteria.')
+            if category:
+                filtered_queryset = filtered_queryset.filter(category=category)
+
+            # If no results after filtering, return all products
+            if (search_query or category) and not filtered_queryset.exists():
+                messages.info(self.request, 'No matching products found, showing all products.')
+                return queryset
+            elif not search_query and not category:
+                return queryset
+            return filtered_queryset
 
         return queryset
+            
+        
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
