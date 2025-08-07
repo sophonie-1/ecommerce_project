@@ -15,6 +15,7 @@ class ProductListView(ListView):
     template_name = 'store/product_list.html'
     context_object_name = 'products'
     ordering = ['-created_at']
+    paginate_by= 6
 
     def get_queryset(self):
         queryset = super().get_queryset()

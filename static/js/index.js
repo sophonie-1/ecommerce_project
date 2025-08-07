@@ -16,7 +16,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     form.addEventListener('submit', (event) => {
-        event.preventDefault(); // Prevent default form submission
+        
         const searchQuery = document.querySelector('#id_search_query')?.value.trim();
         const category = document.querySelector('#id_category')?.value;
 
