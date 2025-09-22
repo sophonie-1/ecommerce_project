@@ -1,14 +1,16 @@
-from django.shortcuts import render,redirect
+from django.shortcuts import render,redirect,get_object_or_404
 from .models import *
 from store.models import Cart,CartItem
-from django.views.generic import CreateView,FormView
+from django.views.generic import CreateView,FormView,ListView
 from django.contrib.auth.forms import UserCreationForm,AuthenticationForm
 from django.contrib.auth.views import LoginView,LogoutView
 from django.views import View
 from django.contrib.auth import login,authenticate,logout
 from django.contrib import messages
 from django.urls import reverse_lazy
-
+from django.contrib.auth.mixins import LoginRequiredMixin
+from .forms import ProfileModelForm
+from store.models import Order
 
 
 class RegisterView(FormView):
@@ -75,9 +77,35 @@ class LoginCustomView(FormView):
             return self.form_invalid(form)
 
 
-class LogoutCustomView(View):
+class LogoutCustomView(LoginRequiredMixin,View):
     def get(self,request):
         logout(self.request)
         self.request.session.flush()
         messages.success(self.request,'Logged out successfully!')
         return redirect('store:product_list')
+    
+class ProfileView(LoginRequiredMixin,FormView):
+    form_class =ProfileModelForm
+    model =Profile
+    template_name='accounts/profileView.html'
+    success_url=reverse_lazy('store:product_list')
+
+    def get_object(self):
+        return get_object_or_404(Profile,user=self.request.user)
+    
+    def form_valid(self, form):
+           messages.success(self.request, 'Profile updated successfully!')
+           return super().form_valid(form)
+
+    def form_invalid(self, form):
+        messages.error(self.request, 'Please correct the errors below.')
+        return super().form_invalid(form)
+    
+class OrderCustumView(LoginRequiredMixin,ListView):
+    model =Order
+    context_object_name='order_object'
+    template_name='accounts/orderView.html'
+
+    def get_queryset(self):
+        return Order.objects.filter(user=self.request.user).order_by('-created_at')
+

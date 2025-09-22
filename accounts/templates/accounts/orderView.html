@@ -1,0 +1,49 @@
+{% extends 'main.html' %}
+{% load crispy_forms_tags %}
+{% load store_tags %}
+{% block title %}Order History{% endblock %}
+
+
+{% block content %}
+<h2>Your Order History</h2>
+
+
+{% if order_object %}
+{% for order in order_object %}
+    <div class="card mb-3">
+        <div class="card-body">
+            <h5 class="card-title">Order #{{ order.id }}</h5>
+            <p><strong>Date:</strong> {{ order.created_at }}</p>
+            <p><strong>Total:</strong> ${{ order.total_price|floatformat:2 }}</p>
+            <p><strong>Status:</strong> {{ order.get_status_display }}</p>
+            <p><strong>Shipping Address:</strong> {{ order.shipping_address }}</p>
+            <h6>Items</h6>
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>Product</th>
+                        <th>Price</th>
+                        <th>Quantity</th>
+                        <th>Total</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item in order.items.all %}
+                        <tr>
+                            <td>{{ item.product.name }}</td>
+                            <td>${{ item.price }}</td>
+                            <td>{{ item.quantity }}</td>
+                            <td>${{ item.price|floatformat:2|multiply:item.quantity }}</td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+{% endfor %}
+{% else %}
+<p>You have no orders yet.</p>
+{% endif %}
+<a href="{% url 'accounts:profile' %}" class="btn btn-secondary">Back to Profile</a>
+<a href="{% url 'store:product_list' %}" class="btn btn-secondary">Back to Products</a>
+{% endblock %}
