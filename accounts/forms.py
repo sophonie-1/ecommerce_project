@@ -6,8 +6,5 @@ from django import forms
 class ProfileModelForm(ModelForm):
     class Meta:
         model= Profile
-        fields =['address']
-        widgets = {
-               'address': forms.Textarea(attrs={'rows': 4}),
-           }
-    
+        fields ='__all__'
+        exclude =['user']

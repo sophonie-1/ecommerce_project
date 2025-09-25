@@ -89,11 +89,13 @@ class ProfileView(LoginRequiredMixin,FormView):
     model =Profile
     template_name='accounts/profileView.html'
     success_url=reverse_lazy('store:product_list')
+    context_object_name ='profile'
 
     def get_object(self):
         return get_object_or_404(Profile,user=self.request.user)
     
     def form_valid(self, form):
+           form.instance.user=self.request.user
            messages.success(self.request, 'Profile updated successfully!')
            return super().form_valid(form)
 
